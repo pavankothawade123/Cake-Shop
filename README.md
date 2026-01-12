@@ -2,6 +2,10 @@
 
 A full-stack, production-quality cake shop web application built with Next.js 14, TypeScript, and modern web technologies. This application is architected to be deployed with minimal changes while currently using free-tier tools and mock services.
 
+<img width="1728" height="745" alt="Screenshot 2026-01-11 at 11 35 27 PM" src="https://github.com/user-attachments/assets/1d3af92d-750a-40fc-89e9-45f7bc205e97" />
+<img width="1727" height="956" alt="Screenshot 2026-01-11 at 11 35 33 PM" src="https://github.com/user-attachments/assets/9c2ae2ca-de56-4d66-921a-442edfca27fd" />
+
+
 ## Features
 
 ### Customer Features
