@@ -1,9 +1,14 @@
+'use client'
+
 import Image from 'next/image'
 import Link from 'next/link'
 import { Card, CardContent, CardFooter } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { StarRating } from '@/components/reviews/star-rating'
 import { formatPrice } from '@/lib/utils'
+import { useCartStore } from '@/store/cart-store'
+import { ShoppingCart } from 'lucide-react'
 
 interface ProductCardProps {
   product: {
@@ -22,6 +27,30 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product }: ProductCardProps) {
+  const addItem = useCartStore((state) => state.addItem)
+
+  const handleQuickAdd = (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    addItem({
+      productId: product.id,
+      productName: product.name,
+      productImage: product.images[0] || '/placeholder-cake.jpg',
+      basePrice: product.basePrice,
+      quantity: 1,
+      customization: {
+        size: '1kg',
+        flavor: '',
+        frosting: '',
+        isEggless: false,
+        customMessage: '',
+      },
+      price: product.basePrice * 1.8, // 1kg size multiplier
+      totalPrice: product.basePrice * 1.8,
+    })
+  }
+
   return (
     <Link href={`/products/${product.slug}`}>
       <Card className="hover:shadow-lg transition-shadow overflow-hidden">
@@ -57,11 +86,20 @@ export function ProductCard({ product }: ProductCardProps) {
             {product.name}
           </h3>
         </CardContent>
-        <CardFooter className="p-4 pt-0">
+        <CardFooter className="p-4 pt-0 flex items-center justify-between">
           <p className="text-xl font-bold text-pink-600">
             {formatPrice(product.basePrice)}
             <span className="text-sm text-gray-500 ml-1">starting</span>
           </p>
+          {product.isAvailable && (
+            <Button
+              size="sm"
+              onClick={handleQuickAdd}
+              className="ml-2"
+            >
+              <ShoppingCart className="h-4 w-4" />
+            </Button>
+          )}
         </CardFooter>
       </Card>
     </Link>
