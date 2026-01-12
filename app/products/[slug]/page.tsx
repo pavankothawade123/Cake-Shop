@@ -28,8 +28,6 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
     isEggless: false,
     customMessage: '',
   })
-  const [deliveryDate, setDeliveryDate] = useState('')
-  const [deliveryTimeSlot, setDeliveryTimeSlot] = useState('')
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
 
@@ -54,20 +52,6 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
   const totalPrice = itemPrice * quantity
 
   const handleAddToCart = () => {
-    if (!deliveryDate || !deliveryTimeSlot) {
-      alert('Please select delivery date and time slot')
-      return
-    }
-
-    const selectedDate = new Date(deliveryDate)
-    const today = new Date()
-    today.setHours(0, 0, 0, 0)
-
-    if (selectedDate < today) {
-      alert('Delivery date cannot be in the past')
-      return
-    }
-
     addItem({
       productId: product.id,
       productName: product.name,
@@ -195,34 +179,6 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
                 <p className="text-xs text-gray-500 mt-1">
                   {customization.customMessage.length}/50 characters
                 </p>
-              </div>
-
-              <div>
-                <Label htmlFor="deliveryDate">Delivery Date *</Label>
-                <Input
-                  id="deliveryDate"
-                  type="date"
-                  min={new Date().toISOString().split('T')[0]}
-                  value={deliveryDate}
-                  onChange={(e) => setDeliveryDate(e.target.value)}
-                  className="mt-2"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="timeSlot">Time Slot *</Label>
-                <Select
-                  id="timeSlot"
-                  value={deliveryTimeSlot}
-                  onChange={(e) => setDeliveryTimeSlot(e.target.value)}
-                  className="mt-2"
-                >
-                  <option value="">Select a time slot</option>
-                  <option value="9AM-12PM">9AM - 12PM</option>
-                  <option value="12PM-3PM">12PM - 3PM</option>
-                  <option value="3PM-6PM">3PM - 6PM</option>
-                  <option value="6PM-9PM">6PM - 9PM</option>
-                </Select>
               </div>
 
               <div>
