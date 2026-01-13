@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSearchParams } from 'next/navigation'
 import { ProductCard } from '@/components/products/product-card'
@@ -12,7 +13,7 @@ import { Search } from 'lucide-react'
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
-export default function ProductsPage() {
+function ProductsContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [searchQuery, setSearchQuery] = useState(searchParams.get('search') || '')
@@ -61,9 +62,7 @@ export default function ProductsPage() {
   }, [category, sortBy])
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <h1 className="text-4xl font-bold mb-8">Our Products</h1>
-
+    <>
       <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-4">
         <form onSubmit={handleSearch} className="flex gap-2">
           <div className="relative flex-1">
@@ -127,6 +126,17 @@ export default function ProductsPage() {
           ))}
         </div>
       )}
+    </>
+  )
+}
+
+export default function ProductsPage() {
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-4xl font-bold mb-8">Our Products</h1>
+      <Suspense fallback={<LoadingSpinner className="py-12" />}>
+        <ProductsContent />
+      </Suspense>
     </div>
   )
 }

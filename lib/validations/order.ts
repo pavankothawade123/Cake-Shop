@@ -2,7 +2,7 @@ import { z } from 'zod'
 
 export const customizationSchema = z.object({
   size: z.enum(['0.5kg', '1kg', '2kg'], {
-    errorMap: () => ({ message: 'Please select a size' }),
+    error: 'Please select a size',
   }),
   flavor: z.string().optional(),
   frosting: z.string().optional(),

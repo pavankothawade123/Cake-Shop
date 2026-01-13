@@ -1,5 +1,6 @@
 'use client'
 
+import { Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useSession } from 'next-auth/react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -12,6 +13,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { CheckCircle } from 'lucide-react'
+import { use } from 'react'
 
 const statusColors: Record<string, string> = {
   PLACED: 'bg-blue-100 text-blue-800',
@@ -22,15 +24,15 @@ const statusColors: Record<string, string> = {
   CANCELLED: 'bg-red-100 text-red-800',
 }
 
-export default function OrderDetailPage({ params }: { params: { id: string } }) {
+function OrderDetailContent({ id }: { id: string }) {
   const { data: session } = useSession()
   const searchParams = useSearchParams()
   const isSuccess = searchParams.get('success') === 'true'
 
   const { data: order, isLoading, error } = useQuery({
-    queryKey: ['order', params.id],
+    queryKey: ['order', id],
     queryFn: async () => {
-      const res = await fetch(`/api/orders/${params.id}`)
+      const res = await fetch(`/api/orders/${id}`)
       if (!res.ok) throw new Error('Failed to fetch order')
       return res.json()
     },
@@ -229,5 +231,15 @@ export default function OrderDetailPage({ params }: { params: { id: string } }) 
         </div>
       </div>
     </div>
+  )
+}
+
+export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params)
+
+  return (
+    <Suspense fallback={<LoadingSpinner className="py-20" />}>
+      <OrderDetailContent id={id} />
+    </Suspense>
   )
 }
