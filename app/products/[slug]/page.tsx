@@ -16,8 +16,10 @@ import { formatPrice, formatDate } from '@/lib/utils'
 import { useCartStore, calculateItemPrice } from '@/store/cart-store'
 import { ShoppingCart } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { use } from 'react'
 
-export default function ProductDetailPage({ params }: { params: { slug: string } }) {
+export default function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
+  const { slug } = use(params)
   const router = useRouter()
   const addItem = useCartStore((state) => state.addItem)
 
@@ -32,12 +34,12 @@ export default function ProductDetailPage({ params }: { params: { slug: string }
   const [selectedImage, setSelectedImage] = useState(0)
 
   const { data: product, isLoading, error } = useQuery({
-    queryKey: ['product', params.slug],
+    queryKey: ['product', slug],
     queryFn: async () => {
-      const res = await fetch(`/api/products?search=${params.slug}`)
+      const res = await fetch(`/api/products?search=${slug}`)
       if (!res.ok) throw new Error('Failed to fetch product')
       const products = await res.json()
-      return products.find((p: any) => p.slug === params.slug)
+      return products.find((p: any) => p.slug === slug)
     },
   })
 
