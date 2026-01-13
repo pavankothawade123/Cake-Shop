@@ -8,7 +8,11 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "next lint",
-    "postinstall": "prisma generate"
+    "typecheck": "tsc --noEmit",
+    "validate": "npm run typecheck && npm run lint",
+    "prebuild": "npm run typecheck",
+    "postinstall": "prisma generate",
+    "prepare": "husky"
   },
   "repository": {
     "type": "git",
@@ -36,7 +40,9 @@
     "zustand": "^5.0.10"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.2.0",
     "@types/bcryptjs": "^2.4.6",
+    "husky": "^9.1.7",
     "@types/node": "^25.0.6",
     "@types/react": "^19.2.8",
     "@types/react-dom": "^19.2.3",
