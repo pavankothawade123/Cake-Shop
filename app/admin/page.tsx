@@ -3,13 +3,13 @@
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
-import { Package, ShoppingCart, Users, Star } from 'lucide-react'
+import { Package, ShoppingCart, Users, Star, Ticket, MessageSquare, Award } from 'lucide-react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 
 export default function AdminDashboard() {
-  const { data: products } = useQuery({
-    queryKey: ['admin-products'],
+  const { data: productsData } = useQuery({
+    queryKey: ['admin-products-dashboard'],
     queryFn: async () => {
       const res = await fetch('/api/products')
       if (!res.ok) throw new Error('Failed to fetch')
@@ -17,8 +17,8 @@ export default function AdminDashboard() {
     },
   })
 
-  const { data: orders } = useQuery({
-    queryKey: ['admin-orders'],
+  const { data: ordersData } = useQuery({
+    queryKey: ['admin-orders-dashboard'],
     queryFn: async () => {
       const res = await fetch('/api/admin/orders')
       if (!res.ok) throw new Error('Failed to fetch')
@@ -26,8 +26,8 @@ export default function AdminDashboard() {
     },
   })
 
-  const { data: users } = useQuery({
-    queryKey: ['admin-users'],
+  const { data: usersData } = useQuery({
+    queryKey: ['admin-users-dashboard'],
     queryFn: async () => {
       const res = await fetch('/api/admin/users')
       if (!res.ok) throw new Error('Failed to fetch')
@@ -35,11 +35,16 @@ export default function AdminDashboard() {
     },
   })
 
+  // Handle both old array format and new paginated format
+  const products = Array.isArray(productsData) ? productsData : productsData?.products || []
+  const orders = Array.isArray(ordersData) ? ordersData : ordersData?.orders || []
+  const users = Array.isArray(usersData) ? usersData : usersData?.users || []
+
   const stats = {
-    totalProducts: products?.length || 0,
-    totalOrders: orders?.length || 0,
-    totalUsers: users?.length || 0,
-    pendingOrders: orders?.filter((o: any) => o.status === 'PLACED').length || 0,
+    totalProducts: productsData?.pagination?.total || products.length || 0,
+    totalOrders: ordersData?.pagination?.total || orders.length || 0,
+    totalUsers: usersData?.stats?.total || users.length || 0,
+    pendingOrders: orders.filter((o: any) => o.status === 'PLACED').length || 0,
   }
 
   return (
@@ -96,9 +101,10 @@ export default function AdminDashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center gap-3">
+            <Package className="h-5 w-5 text-pink-600" />
             <CardTitle>Product Management</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -112,7 +118,8 @@ export default function AdminDashboard() {
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center gap-3">
+            <ShoppingCart className="h-5 w-5 text-pink-600" />
             <CardTitle>Order Management</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -126,7 +133,8 @@ export default function AdminDashboard() {
         </Card>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center gap-3">
+            <Users className="h-5 w-5 text-pink-600" />
             <CardTitle>User Management</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
@@ -135,6 +143,51 @@ export default function AdminDashboard() {
             </p>
             <Link href="/admin/users">
               <Button className="w-full">Manage Users</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-3">
+            <Ticket className="h-5 w-5 text-pink-600" />
+            <CardTitle>Promo Codes</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-gray-600 text-sm mb-4">
+              Create and manage discount codes for customers.
+            </p>
+            <Link href="/admin/promo-codes">
+              <Button className="w-full">Manage Promo Codes</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-3">
+            <MessageSquare className="h-5 w-5 text-pink-600" />
+            <CardTitle>Review Management</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-gray-600 text-sm mb-4">
+              Approve, reject, or delete customer reviews.
+            </p>
+            <Link href="/admin/reviews">
+              <Button className="w-full">Manage Reviews</Button>
+            </Link>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center gap-3">
+            <Award className="h-5 w-5 text-pink-600" />
+            <CardTitle>Loyalty Points</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p className="text-gray-600 text-sm mb-4">
+              View and manage customer loyalty points.
+            </p>
+            <Link href="/admin/loyalty">
+              <Button className="w-full">Manage Loyalty</Button>
             </Link>
           </CardContent>
         </Card>

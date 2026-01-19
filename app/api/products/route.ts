@@ -31,6 +31,9 @@ export async function GET(request: NextRequest) {
       include: {
         category: true,
         reviews: {
+          where: {
+            status: 'APPROVED',
+          },
           select: {
             rating: true,
           },

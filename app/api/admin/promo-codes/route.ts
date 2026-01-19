@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
+import { promoCodeSchema } from '@/lib/validations/promo-code'
 
 async function requireAdminApi() {
   const session = await auth()
@@ -16,47 +17,36 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams
     const search = searchParams.get('search') || ''
-    const categoryId = searchParams.get('categoryId') || ''
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '10')
     const skip = (page - 1) * limit
 
-    const where: any = {}
+    const where = search
+      ? {
+          OR: [
+            { code: { contains: search, mode: 'insensitive' as const } },
+            { description: { contains: search, mode: 'insensitive' as const } },
+          ],
+        }
+      : {}
 
-    if (search) {
-      where.OR = [
-        { name: { contains: search, mode: 'insensitive' } },
-        { description: { contains: search, mode: 'insensitive' } },
-      ]
-    }
-
-    if (categoryId) {
-      where.categoryId = categoryId
-    }
-
-    const [products, total] = await Promise.all([
-      prisma.product.findMany({
+    const [promoCodes, total] = await Promise.all([
+      prisma.promoCode.findMany({
         where,
-        include: {
-          category: true,
-          _count: {
-            select: {
-              reviews: true,
-              orderItems: true,
-            },
-          },
-        },
-        orderBy: {
-          createdAt: 'desc',
-        },
+        orderBy: { createdAt: 'desc' },
         skip,
         take: limit,
+        include: {
+          _count: {
+            select: { usages: true },
+          },
+        },
       }),
-      prisma.product.count({ where }),
+      prisma.promoCode.count({ where }),
     ])
 
     return NextResponse.json({
-      products,
+      promoCodes,
       pagination: {
         page,
         limit,
@@ -68,9 +58,9 @@ export async function GET(request: NextRequest) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.error('Error fetching products:', error)
+    console.error('Error fetching promo codes:', error)
     return NextResponse.json(
-      { error: 'Failed to fetch products' },
+      { error: 'Failed to fetch promo codes' },
       { status: 500 }
     )
   }
@@ -81,38 +71,42 @@ export async function POST(request: NextRequest) {
     await requireAdminApi()
 
     const body = await request.json()
-    const { name, slug, description, basePrice, images, categoryId, isAvailable } = body
+    const validatedData = promoCodeSchema.parse(body)
 
-    if (!name || !description || !basePrice || !categoryId) {
+    // Convert code to uppercase for consistency
+    const code = validatedData.code.toUpperCase()
+
+    // Check if code already exists
+    const existing = await prisma.promoCode.findUnique({
+      where: { code },
+    })
+
+    if (existing) {
       return NextResponse.json(
-        { error: 'Missing required fields' },
+        { error: 'A promo code with this code already exists' },
         { status: 400 }
       )
     }
 
-    const product = await prisma.product.create({
+    const promoCode = await prisma.promoCode.create({
       data: {
-        name,
-        slug: slug || name.toLowerCase().replace(/\s+/g, '-'),
-        description,
-        basePrice: parseFloat(basePrice),
-        images: images || [],
-        categoryId,
-        isAvailable: isAvailable ?? true,
-      },
-      include: {
-        category: true,
+        ...validatedData,
+        code,
+        expiresAt: validatedData.expiresAt ? new Date(validatedData.expiresAt) : null,
       },
     })
 
-    return NextResponse.json(product, { status: 201 })
+    return NextResponse.json(promoCode, { status: 201 })
   } catch (error) {
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
-    console.error('Error creating product:', error)
+    console.error('Error creating promo code:', error)
+    if (error instanceof Error && error.name === 'ZodError') {
+      return NextResponse.json({ error: 'Invalid promo code data' }, { status: 400 })
+    }
     return NextResponse.json(
-      { error: 'Failed to create product' },
+      { error: 'Failed to create promo code' },
       { status: 500 }
     )
   }

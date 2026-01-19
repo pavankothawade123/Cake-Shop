@@ -224,6 +224,78 @@ async function main() {
 
   console.log(`Created sample customer: ${customerUser.email}`)
 
+  // Create sample promo codes
+  const promoCodes = [
+    {
+      code: 'WELCOME10',
+      description: 'Welcome discount for new customers',
+      discountType: 'PERCENTAGE' as const,
+      discountValue: 10,
+      minOrderAmount: 500,
+      maxDiscount: 100,
+      isActive: true,
+      expiresAt: new Date('2025-12-31'),
+    },
+    {
+      code: 'FLAT50',
+      description: 'Flat ₹50 off on orders above ₹300',
+      discountType: 'FIXED_AMOUNT' as const,
+      discountValue: 50,
+      minOrderAmount: 300,
+      isActive: true,
+      expiresAt: new Date('2025-12-31'),
+    },
+    {
+      code: 'BIRTHDAY20',
+      description: '20% off on birthday cakes',
+      discountType: 'PERCENTAGE' as const,
+      discountValue: 20,
+      minOrderAmount: 599,
+      maxDiscount: 200,
+      isActive: true,
+      expiresAt: new Date('2025-12-31'),
+    },
+    {
+      code: 'EXPIRED10',
+      description: 'Expired promo code for testing',
+      discountType: 'PERCENTAGE' as const,
+      discountValue: 10,
+      isActive: true,
+      expiresAt: new Date('2024-01-01'),
+    },
+    {
+      code: 'INACTIVE50',
+      description: 'Inactive promo code for testing',
+      discountType: 'FIXED_AMOUNT' as const,
+      discountValue: 50,
+      isActive: false,
+    },
+  ]
+
+  for (const promo of promoCodes) {
+    await prisma.promoCode.upsert({
+      where: { code: promo.code },
+      update: {},
+      create: promo,
+    })
+  }
+
+  console.log(`Created ${promoCodes.length} promo codes`)
+
+  // Create loyalty points for sample customer
+  await prisma.loyaltyPoints.upsert({
+    where: { userId: customerUser.id },
+    update: {},
+    create: {
+      userId: customerUser.id,
+      totalEarned: 150,
+      totalUsed: 50,
+      currentBalance: 100,
+    },
+  })
+
+  console.log('Created sample loyalty points for customer')
+
   console.log('Seeding completed!')
 }
 

@@ -13,6 +13,12 @@ export interface CartItem {
     frosting?: string
     isEggless: boolean
     customMessage?: string
+    // Enhanced customization fields
+    nameOnCake?: string
+    designInstructions?: string
+    referenceImageUrl?: string
+    dietaryPreferences?: string[]
+    allergyNotes?: string
   }
   price: number
   totalPrice: number

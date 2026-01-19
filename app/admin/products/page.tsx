@@ -8,6 +8,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
+import { SearchInput } from '@/components/ui/search-input'
+import { Pagination } from '@/components/ui/pagination'
 import { formatPrice } from '@/lib/utils'
 import { Plus, Pencil, Trash2, X } from 'lucide-react'
 import Image from 'next/image'
@@ -37,6 +39,9 @@ export default function AdminProductsPage() {
   const queryClient = useQueryClient()
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [editingProduct, setEditingProduct] = useState<Product | null>(null)
+  const [search, setSearch] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
+  const [page, setPage] = useState(1)
   const [formData, setFormData] = useState({
     name: '',
     slug: '',
@@ -47,14 +52,24 @@ export default function AdminProductsPage() {
     isAvailable: true,
   })
 
-  const { data: products, isLoading } = useQuery({
-    queryKey: ['admin-products'],
+  const { data, isLoading } = useQuery({
+    queryKey: ['admin-products', search, categoryFilter, page],
     queryFn: async () => {
-      const res = await fetch('/api/admin/products')
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '10',
+      })
+      if (search) params.append('search', search)
+      if (categoryFilter) params.append('categoryId', categoryFilter)
+
+      const res = await fetch(`/api/admin/products?${params}`)
       if (!res.ok) throw new Error('Failed to fetch products')
       return res.json()
     },
   })
+
+  const products = data?.products || data || []
+  const pagination = data?.pagination
 
   const { data: categories } = useQuery({
     queryKey: ['categories'],
@@ -175,20 +190,52 @@ export default function AdminProductsPage() {
     }
   }
 
-  if (isLoading) return <LoadingSpinner className="py-20" />
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Product Management</h1>
+        <div>
+          <h1 className="text-3xl font-bold">Product Management</h1>
+          <p className="text-gray-600 mt-1">Manage your product catalog</p>
+        </div>
         <Button onClick={openCreateModal}>
           <Plus className="h-4 w-4 mr-2" />
           Add Product
         </Button>
       </div>
 
-      <div className="grid gap-4">
-        {products?.map((product: Product) => (
+      {/* Search and Filter */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6">
+        <SearchInput
+          value={search}
+          onChange={(value) => {
+            setSearch(value)
+            setPage(1)
+          }}
+          placeholder="Search products by name..."
+          className="flex-1 max-w-md"
+        />
+        <Select
+          value={categoryFilter}
+          onChange={(e) => {
+            setCategoryFilter(e.target.value)
+            setPage(1)
+          }}
+          className="w-48"
+        >
+          <option value="">All Categories</option>
+          {categories?.map((cat: Category) => (
+            <option key={cat.id} value={cat.id}>
+              {cat.name}
+            </option>
+          ))}
+        </Select>
+      </div>
+
+      {isLoading && <LoadingSpinner className="py-12" />}
+
+      {!isLoading && (
+        <div className="grid gap-4">
+          {products?.map((product: Product) => (
           <Card key={product.id}>
             <CardContent className="p-4">
               <div className="flex items-center gap-4">
@@ -226,12 +273,23 @@ export default function AdminProductsPage() {
           </Card>
         ))}
 
-        {products?.length === 0 && (
-          <div className="text-center py-12 text-gray-500">
-            No products found. Add your first product!
-          </div>
-        )}
-      </div>
+          {products?.length === 0 && (
+            <div className="text-center py-12 text-gray-500">
+              No products found. Add your first product!
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Pagination */}
+      {pagination && pagination.totalPages > 1 && (
+        <Pagination
+          currentPage={page}
+          totalPages={pagination.totalPages}
+          onPageChange={setPage}
+          className="mt-6"
+        />
+      )}
 
       {/* Modal */}
       {isModalOpen && (

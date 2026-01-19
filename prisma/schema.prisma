@@ -7,6 +7,8 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ============ ENUMS ============
+
 enum Role {
   USER
   ADMIN
@@ -26,18 +28,41 @@ enum DeliveryMethod {
   PICKUP
 }
 
+enum DiscountType {
+  PERCENTAGE
+  FIXED_AMOUNT
+}
+
+enum PointTransactionType {
+  EARNED
+  REDEEMED
+  EXPIRED
+  ADJUSTED
+}
+
+enum ReviewStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+// ============ MODELS ============
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
   name          String
   password      String
+  phone         String?
   role          Role      @default(USER)
   isActive      Boolean   @default(true)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  orders        Order[]
-  reviews       Review[]
+  orders          Order[]
+  reviews         Review[]
+  loyaltyPoints   LoyaltyPoints?
+  promoCodeUsages PromoCodeUsage[]
 
   @@map("users")
 }
@@ -93,11 +118,18 @@ model Order {
   paymentStatus     String          @default("PENDING")
   paymentMethod     String          @default("MOCK")
   isRefunded        Boolean         @default(false)
+  // Loyalty & Promo tracking
+  pointsEarned      Int             @default(0)
+  pointsRedeemed    Int             @default(0)
+  pointsDiscount    Float           @default(0)
+  promoDiscount     Float           @default(0)
   createdAt         DateTime        @default(now())
   updatedAt         DateTime        @updatedAt
 
   user              User?           @relation(fields: [userId], references: [id])
   items             OrderItem[]
+  promoCodeUsage    PromoCodeUsage?
+  pointTransactions PointTransaction[]
 
   @@map("orders")
 }
@@ -114,6 +146,12 @@ model OrderItem {
   customMessage   String?
   price           Float
   totalPrice      Float
+  // Enhanced customization fields
+  nameOnCake         String?
+  designInstructions String?
+  referenceImageUrl  String?
+  dietaryPreferences String[]   @default([])
+  allergyNotes       String?
 
   order           Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
   product         Product   @relation(fields: [productId], references: [id])
@@ -122,17 +160,87 @@ model OrderItem {
 }
 
 model Review {
-  id          String    @id @default(cuid())
+  id          String       @id @default(cuid())
   productId   String
   userId      String
   rating      Int
   comment     String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  status      ReviewStatus @default(PENDING)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 
   product     Product   @relation(fields: [productId], references: [id], onDelete: Cascade)
   user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([productId, userId])
   @@map("reviews")
+}
+
+// ============ LOYALTY POINTS ============
+
+model LoyaltyPoints {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  totalEarned    Int      @default(0)
+  totalUsed      Int      @default(0)
+  currentBalance Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  user          User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions  PointTransaction[]
+
+  @@map("loyalty_points")
+}
+
+model PointTransaction {
+  id              String               @id @default(cuid())
+  loyaltyPointsId String
+  type            PointTransactionType
+  points          Int
+  description     String
+  orderId         String?
+  createdAt       DateTime             @default(now())
+
+  loyaltyPoints   LoyaltyPoints @relation(fields: [loyaltyPointsId], references: [id], onDelete: Cascade)
+  order           Order?        @relation(fields: [orderId], references: [id])
+
+  @@map("point_transactions")
+}
+
+// ============ PROMO CODES ============
+
+model PromoCode {
+  id             String       @id @default(cuid())
+  code           String       @unique
+  description    String?
+  discountType   DiscountType
+  discountValue  Float
+  minOrderAmount Float?
+  maxDiscount    Float?
+  usageLimit     Int?
+  usedCount      Int          @default(0)
+  isActive       Boolean      @default(true)
+  expiresAt      DateTime?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  usages         PromoCodeUsage[]
+
+  @@map("promo_codes")
+}
+
+model PromoCodeUsage {
+  id          String   @id @default(cuid())
+  promoCodeId String
+  userId      String?
+  orderId     String   @unique
+  discount    Float
+  createdAt   DateTime @default(now())
+
+  promoCode   PromoCode @relation(fields: [promoCodeId], references: [id])
+  user        User?     @relation(fields: [userId], references: [id])
+  order       Order     @relation(fields: [orderId], references: [id])
+
+  @@map("promo_code_usages")
 }

@@ -1,20 +1,32 @@
 'use client'
 
+import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ErrorMessage } from '@/components/ui/error-message'
-import { formatDate } from '@/lib/utils'
+import { SearchInput } from '@/components/ui/search-input'
+import { Pagination } from '@/components/ui/pagination'
+import { formatDate, formatNumber } from '@/lib/utils'
+import { Users, ShoppingCart, MessageSquare, Award } from 'lucide-react'
 
 export default function AdminUsersPage() {
   const queryClient = useQueryClient()
+  const [search, setSearch] = useState('')
+  const [page, setPage] = useState(1)
 
-  const { data: users, isLoading, error } = useQuery({
-    queryKey: ['admin-users'],
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['admin-users', search, page],
     queryFn: async () => {
-      const res = await fetch('/api/admin/users')
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: '12',
+      })
+      if (search) params.append('search', search)
+
+      const res = await fetch(`/api/admin/users?${params}`)
       if (!res.ok) throw new Error('Failed to fetch users')
       return res.json()
     },
@@ -35,9 +47,79 @@ export default function AdminUsersPage() {
     },
   })
 
+  const users = data?.users || data || []
+  const pagination = data?.pagination
+  const stats = data?.stats
+
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-8">User Management</h1>
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold">User Management</h1>
+        <p className="text-gray-600 mt-1">View and manage customer accounts</p>
+      </div>
+
+      {/* Stats */}
+      {stats && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Total Users</p>
+                  <p className="text-2xl font-bold">{formatNumber(stats.total)}</p>
+                </div>
+                <Users className="h-8 w-8 text-pink-400" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Active Users</p>
+                  <p className="text-2xl font-bold text-green-600">{formatNumber(stats.active)}</p>
+                </div>
+                <Users className="h-8 w-8 text-green-400" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Admins</p>
+                  <p className="text-2xl font-bold text-purple-600">{formatNumber(stats.admins)}</p>
+                </div>
+                <Award className="h-8 w-8 text-purple-400" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-gray-600">Disabled</p>
+                  <p className="text-2xl font-bold text-red-600">{formatNumber(stats.disabled)}</p>
+                </div>
+                <Users className="h-8 w-8 text-red-400" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Search */}
+      <div className="mb-6">
+        <SearchInput
+          value={search}
+          onChange={(value) => {
+            setSearch(value)
+            setPage(1)
+          }}
+          placeholder="Search by name, email, or phone..."
+          className="max-w-md"
+        />
+      </div>
 
       {isLoading && <LoadingSpinner className="py-12" />}
       {error && <ErrorMessage message="Failed to load users" />}
@@ -68,12 +150,26 @@ export default function AdminUsersPage() {
               <CardContent>
                 <div className="space-y-2 text-sm mb-4">
                   <p className="text-gray-600">{user.email}</p>
+                  {user.phone && <p className="text-gray-600">Phone: {user.phone}</p>}
                   <p className="text-gray-600">
                     Joined: {formatDate(user.createdAt)}
                   </p>
-                  <p className="text-gray-600">
-                    Orders: {user._count.orders} | Reviews: {user._count.reviews}
-                  </p>
+                  <div className="flex items-center gap-4 text-gray-600">
+                    <span className="flex items-center gap-1">
+                      <ShoppingCart className="h-4 w-4" />
+                      {user._count?.orders || 0} orders
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <MessageSquare className="h-4 w-4" />
+                      {user._count?.reviews || 0} reviews
+                    </span>
+                  </div>
+                  {user.loyaltyPoints && (
+                    <p className="text-pink-600 font-medium">
+                      <Award className="h-4 w-4 inline mr-1" />
+                      {formatNumber(user.loyaltyPoints.currentBalance)} points
+                    </p>
+                  )}
                 </div>
                 <Button
                   variant={user.isActive ? 'destructive' : 'default'}
@@ -93,6 +189,16 @@ export default function AdminUsersPage() {
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Pagination */}
+      {pagination && pagination.totalPages > 1 && (
+        <Pagination
+          currentPage={page}
+          totalPages={pagination.totalPages}
+          onPageChange={setPage}
+          className="mt-6"
+        />
       )}
     </div>
   )

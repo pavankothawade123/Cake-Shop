@@ -11,9 +11,8 @@ import { ErrorMessage } from '@/components/ui/error-message'
 import { formatPrice, formatDate } from '@/lib/utils'
 import Image from 'next/image'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams, useParams } from 'next/navigation'
 import { CheckCircle } from 'lucide-react'
-import { use } from 'react'
 
 const statusColors: Record<string, string> = {
   PLACED: 'bg-blue-100 text-blue-800',
@@ -234,8 +233,9 @@ function OrderDetailContent({ id }: { id: string }) {
   )
 }
 
-export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params)
+export default function OrderDetailPage() {
+  const params = useParams()
+  const id = params.id as string
 
   return (
     <Suspense fallback={<LoadingSpinner className="py-20" />}>

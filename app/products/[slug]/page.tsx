@@ -7,19 +7,27 @@ import { Button } from '@/components/ui/button'
 import { Select } from '@/components/ui/select'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { LoadingSpinner } from '@/components/ui/loading-spinner'
 import { ErrorMessage } from '@/components/ui/error-message'
 import { StarRating } from '@/components/reviews/star-rating'
+import { FileUpload } from '@/components/ui/file-upload'
 import { formatPrice, formatDate } from '@/lib/utils'
 import { useCartStore, calculateItemPrice } from '@/store/cart-store'
-import { ShoppingCart } from 'lucide-react'
-import { useRouter } from 'next/navigation'
-import { use } from 'react'
+import { ShoppingCart, ChevronDown, ChevronUp, Sparkles } from 'lucide-react'
+import { useRouter, useParams } from 'next/navigation'
 
-export default function ProductDetailPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = use(params)
+const DIETARY_OPTIONS = [
+  { value: 'EGGLESS', label: 'Eggless' },
+  { value: 'VEGAN', label: 'Vegan' },
+  { value: 'SUGAR_FREE', label: 'Sugar Free' },
+  { value: 'GLUTEN_FREE', label: 'Gluten Free' },
+]
+
+export default function ProductDetailPage() {
+  const params = useParams()
+  const slug = params.slug as string
   const router = useRouter()
   const addItem = useCartStore((state) => state.addItem)
 
@@ -29,9 +37,17 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
     frosting: '',
     isEggless: false,
     customMessage: '',
+    // Enhanced customization
+    nameOnCake: '',
+    designInstructions: '',
+    referenceImageUrl: '',
+    dietaryPreferences: [] as string[],
+    allergyNotes: '',
   })
   const [quantity, setQuantity] = useState(1)
   const [selectedImage, setSelectedImage] = useState(0)
+  const [showAdvancedOptions, setShowAdvancedOptions] = useState(false)
+  const [isUploadingImage, setIsUploadingImage] = useState(false)
 
   const { data: product, isLoading, error } = useQuery({
     queryKey: ['product', slug],
@@ -195,6 +211,127 @@ export default function ProductDetailPage({ params }: { params: Promise<{ slug: 
                 />
               </div>
             </CardContent>
+          </Card>
+
+          {/* Advanced Customization Options */}
+          <Card className="mb-6">
+            <CardHeader
+              className="cursor-pointer"
+              onClick={() => setShowAdvancedOptions(!showAdvancedOptions)}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-5 w-5 text-pink-600" />
+                  <CardTitle className="text-lg">Advanced Customization</CardTitle>
+                </div>
+                {showAdvancedOptions ? (
+                  <ChevronUp className="h-5 w-5 text-gray-500" />
+                ) : (
+                  <ChevronDown className="h-5 w-5 text-gray-500" />
+                )}
+              </div>
+              <p className="text-sm text-gray-500 mt-1">
+                Add special requests, dietary preferences, and reference images
+              </p>
+            </CardHeader>
+            {showAdvancedOptions && (
+              <CardContent className="space-y-4 pt-0">
+                <div>
+                  <Label htmlFor="nameOnCake">Name on Cake</Label>
+                  <Input
+                    id="nameOnCake"
+                    placeholder="e.g., Happy Birthday John!"
+                    value={customization.nameOnCake}
+                    onChange={(e) => setCustomization({ ...customization, nameOnCake: e.target.value })}
+                    className="mt-2"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="designInstructions">Design Instructions</Label>
+                  <textarea
+                    id="designInstructions"
+                    placeholder="Describe your preferred design, colors, theme, decorations..."
+                    value={customization.designInstructions}
+                    onChange={(e) => setCustomization({ ...customization, designInstructions: e.target.value })}
+                    className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-pink-500 min-h-[100px]"
+                    rows={4}
+                  />
+                </div>
+
+                <div>
+                  <Label>Reference Image</Label>
+                  <p className="text-xs text-gray-500 mb-2">
+                    Upload a photo of the design you'd like (optional)
+                  </p>
+                  {customization.referenceImageUrl ? (
+                    <div className="relative">
+                      <div className="relative w-full h-48 rounded-lg overflow-hidden border">
+                        <Image
+                          src={customization.referenceImageUrl}
+                          alt="Reference design"
+                          fill
+                          className="object-contain"
+                        />
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => setCustomization({ ...customization, referenceImageUrl: '' })}
+                      >
+                        Remove Image
+                      </Button>
+                    </div>
+                  ) : (
+                    <FileUpload
+                      onChange={(url) => setCustomization({ ...customization, referenceImageUrl: url || '' })}
+                      accept="image/*"
+                      maxSizeMB={5}
+                    />
+                  )}
+                </div>
+
+                <div>
+                  <Label>Dietary Preferences</Label>
+                  <div className="grid grid-cols-2 gap-2 mt-2">
+                    {DIETARY_OPTIONS.map((option) => (
+                      <label
+                        key={option.value}
+                        className="flex items-center space-x-2 p-2 border rounded-md hover:bg-gray-50 cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={customization.dietaryPreferences.includes(option.value)}
+                          onChange={(e) => {
+                            const newPrefs = e.target.checked
+                              ? [...customization.dietaryPreferences, option.value]
+                              : customization.dietaryPreferences.filter((p) => p !== option.value)
+                            setCustomization({ ...customization, dietaryPreferences: newPrefs })
+                          }}
+                          className="rounded"
+                        />
+                        <span className="text-sm">{option.label}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="allergyNotes">Allergy Notes</Label>
+                  <Input
+                    id="allergyNotes"
+                    placeholder="e.g., Nut allergy, Lactose intolerant..."
+                    value={customization.allergyNotes}
+                    onChange={(e) => setCustomization({ ...customization, allergyNotes: e.target.value })}
+                    className="mt-2"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">
+                    Please mention any allergies so we can take necessary precautions
+                  </p>
+                </div>
+              </CardContent>
+            )}
           </Card>
 
           <div className="bg-gray-50 rounded-lg p-4 mb-6">

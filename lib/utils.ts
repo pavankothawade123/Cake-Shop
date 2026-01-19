@@ -19,3 +19,7 @@ export function formatDate(date: Date | string): string {
     day: 'numeric',
   }).format(new Date(date))
 }
+
+export function formatNumber(num: number): string {
+  return new Intl.NumberFormat('en-IN').format(num)
+}
